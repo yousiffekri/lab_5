@@ -1,0 +1,25 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [ main ]
+
+jobs:
+  Deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pull Docker image
+        run: sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/calculator-app:v1
+
+      - name: Delete Docker container
+        run: sudo docker rm -f calculator-app || true
+
+      - name: Run Docker container
+        run: sudo docker container run --detach --publish 5000:5000 --name calculator-app ${{ secrets.DOCKERHUB_USERNAME }}/calculator-app:v1
